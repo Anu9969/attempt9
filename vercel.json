@@ -26,10 +26,5 @@
       "src": "/.*",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "REACT_APP_GITHUB_TOKEN": "@github_token",
-    "REACT_APP_HIVE_NODE": "https://api.hive.blog",
-    "REACT_APP_CONTRACT_ACCOUNT": "devbounties"
-  }
+  ]
 } 
