@@ -8,18 +8,8 @@ const Login = () => {
   const navigate = useNavigate();
   const { account, isConnecting, error, isKeychainInstalled, connect } = useWalletContext();
   const [username, setUsername] = useState('');
-  const [checkingKeychain, setCheckingKeychain] = useState(true);
 
-  useEffect(() => {
-    // Give some time for Keychain to be detected
-    const timer = setTimeout(() => {
-      setCheckingKeychain(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Redirect to home page when account is connected
+  // Redirect to home if already logged in
   useEffect(() => {
     if (account) {
       navigate('/');
@@ -29,23 +19,14 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      await connect(username.trim());
-      // The redirection will happen in the useEffect when account is set
+      try {
+        await connect(username.trim());
+        // The redirection will happen in the useEffect when account is set
+      } catch (error) {
+        console.error("Login error:", error);
+      }
     }
   };
-
-  if (checkingKeychain) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full">
-          <div className="flex flex-col items-center">
-            <div className="animate-pulse bg-gray-200 h-12 w-48 rounded mb-4"></div>
-            <p className="text-gray-500">Checking for Hive Keychain...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!isKeychainInstalled) {
     const downloadLink = getKeychainDownloadLink();

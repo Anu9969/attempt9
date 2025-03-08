@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWalletContext } from '../context/WalletContext';
 import { WalletConnect } from '../components/wallet/WalletConnect';
@@ -12,7 +12,7 @@ const BountyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { account } = useWalletContext();
-  const { bounties } = useBounties();
+  const { bounties, loading: bountiesLoading } = useBounties();
   
   const [bounty, setBounty] = useState<Bounty | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,23 +20,47 @@ const BountyDetails = () => {
   const [pullRequestUrl, setPullRequestUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClaimForm, setShowClaimForm] = useState(false);
+  const [showConnectWallet, setShowConnectWallet] = useState(false);
 
-  useEffect(() => {
-    if (id && bounties.length > 0) {
-      const foundBounty = bounties.find(b => b.id === id);
-      if (foundBounty) {
-        setBounty(foundBounty);
-      } else {
-        setError('Bounty not found');
-      }
+  console.log("BountyDetails - ID:", id);
+  console.log("BountyDetails - Bounties:", bounties);
+  console.log("BountyDetails - Bounties Loading:", bountiesLoading);
+
+  // Find the bounty by ID
+  const findBounty = useCallback(() => {
+    console.log("Finding bounty with ID:", id);
+    
+    if (!id || bounties.length === 0) {
+      return;
+    }
+    
+    const foundBounty = bounties.find(b => b.id === id);
+    console.log("Found bounty:", foundBounty);
+    
+    if (foundBounty) {
+      setBounty(foundBounty);
+      setLoading(false);
+    } else {
+      setError('Bounty not found');
       setLoading(false);
     }
   }, [id, bounties]);
+
+  // Only run this effect once when the component mounts or when dependencies change
+  useEffect(() => {
+    if (bounties.length > 0) {
+      findBounty();
+    } else if (!bountiesLoading) {
+      setError('No bounties available');
+      setLoading(false);
+    }
+  }, [bounties, bountiesLoading, findBounty]);
 
   const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!account) {
+      setShowConnectWallet(true);
       toast.error('Please connect your Hive wallet first');
       return;
     }
@@ -60,6 +84,21 @@ const BountyDetails = () => {
       const bountyContract = new BountyContract(account.name);
       
       // Convert bounty to BountyProgram format
+      let bountyStatus: 'OPEN' | 'CLAIMED' | 'VERIFIED' | 'PAID';
+      switch (bounty.status) {
+        case 'open':
+          bountyStatus = 'OPEN';
+          break;
+        case 'in_progress':
+          bountyStatus = 'CLAIMED';
+          break;
+        case 'completed':
+          bountyStatus = 'VERIFIED';
+          break;
+        default:
+          bountyStatus = 'PAID';
+      }
+      
       const bountyProgram = {
         id: bounty.id,
         title: bounty.title,
@@ -67,9 +106,7 @@ const BountyDetails = () => {
         githubLink: bounty.githubLink,
         prizePool: parseFloat(bounty.amount),
         creator: bounty.creator,
-        status: bounty.status === 'open' ? 'OPEN' : 
-                bounty.status === 'in_progress' ? 'CLAIMED' : 
-                bounty.status === 'completed' ? 'VERIFIED' : 'PAID' as 'OPEN' | 'CLAIMED' | 'VERIFIED' | 'PAID',
+        status: bountyStatus,
         created: bounty.created_at
       };
       
@@ -241,6 +278,17 @@ const BountyDetails = () => {
                   </div>
                 )}
                 
+                {!account && (
+                  <div className="pt-4">
+                    <button
+                      onClick={() => setShowConnectWallet(true)}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                    >
+                      Connect Wallet to Claim
+                    </button>
+                  </div>
+                )}
+                
                 {canClaim && (
                   <div className="pt-4">
                     <button
@@ -263,6 +311,18 @@ const BountyDetails = () => {
               </div>
             </div>
           </div>
+          
+          {showConnectWallet && (
+            <div className="mt-8 border-t pt-6">
+              <h3 className="text-xl font-semibold mb-4">Connect Your Wallet</h3>
+              <p className="mb-4 text-gray-600">
+                Connect your Hive wallet to claim this bounty or create new bounties.
+              </p>
+              <div className="flex justify-center">
+                <WalletConnect />
+              </div>
+            </div>
+          )}
           
           {showClaimForm && (
             <div className="mt-8 border-t pt-6">

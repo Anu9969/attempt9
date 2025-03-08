@@ -18,12 +18,27 @@ const SAMPLE_BOUNTY: Bounty = {
   deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days from now
 };
 
+// Add a second sample bounty
+const SAMPLE_BOUNTY_2: Bounty = {
+  id: 'sample-bounty-456',
+  title: 'Implement Dark Mode in React App',
+  description: 'Add a dark mode feature to the application that respects the user\'s system preferences and allows manual toggling. This should include updating the color scheme and saving the preference.',
+  amount: '15',
+  currency: 'HIVE',
+  creator: 'devbounties',
+  status: 'open',
+  created_at: new Date().toISOString(),
+  githubLink: 'https://github.com/facebook/react/issues/16116',
+  deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString() // 21 days from now
+};
+
 export const useBounties = () => {
-  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [bounties, setBounties] = useState<Bounty[]>([SAMPLE_BOUNTY, SAMPLE_BOUNTY_2]); // Initialize with sample bounties
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBounties = async () => {
+    console.log("Fetching bounties...");
     setLoading(true);
     setError(null);
     try {
@@ -55,13 +70,15 @@ export const useBounties = () => {
         })
         .filter((bounty): bounty is Bounty => bounty !== null);
       
-      // Add the sample bounty to the list
-      setBounties([SAMPLE_BOUNTY, ...parsedBounties]);
+      // Add the sample bounties to the list
+      const allBounties = [SAMPLE_BOUNTY, SAMPLE_BOUNTY_2, ...parsedBounties];
+      console.log("Fetched bounties:", allBounties);
+      setBounties(allBounties);
     } catch (err) {
+      console.error("Error fetching bounties:", err);
       setError('Failed to fetch bounties');
-      console.error(err);
-      // Even if fetching fails, show the sample bounty
-      setBounties([SAMPLE_BOUNTY]);
+      // Even if fetching fails, show the sample bounties
+      setBounties([SAMPLE_BOUNTY, SAMPLE_BOUNTY_2]);
     } finally {
       setLoading(false);
     }
