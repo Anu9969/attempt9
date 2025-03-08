@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { WalletProvider, useWalletContext } from './context/WalletContext'
 import { AuthRoute } from './components/auth/AuthRoute'
 import { Toaster } from 'react-hot-toast'
+import ErrorBoundary from './components/ErrorBoundary'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import CreateBounty from './pages/CreateBounty'
@@ -43,15 +44,24 @@ const AppRoutes = () => {
 };
 
 function App() {
-  console.log("App - Rendering");
-  
   return (
-    <WalletProvider>
-      <Router>
-        <AppRoutes />
-        <Toaster position="top-right" />
-      </Router>
-    </WalletProvider>
+    <ErrorBoundary>
+      <WalletProvider>
+        <Router>
+          <AppRoutes />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 5000,
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+            }} 
+          />
+        </Router>
+      </WalletProvider>
+    </ErrorBoundary>
   )
 }
 
