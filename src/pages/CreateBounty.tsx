@@ -1,36 +1,70 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WalletConnect } from '../components/wallet/WalletConnect';
+import { useWalletContext } from '../context/WalletContext';
+import { useBounties } from '../hooks/useBounties';
 
 const CreateBounty = () => {
   const navigate = useNavigate();
+  const { account } = useWalletContext();
+  const { createBounty } = useBounties();
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     amount: '',
     currency: 'HIVE',
-    deadline: ''
+    deadline: '',
+    githubLink: '',
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateGithubUrl = (url: string) => {
+    const githubRegex = /^https:\/\/github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+\/(issues|pull)\/\d+$/;
+    return githubRegex.test(url);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement bounty creation logic
-    console.log('Creating bounty:', formData);
+    setError(null);
+
+    if (!validateGithubUrl(formData.githubLink)) {
+      setError('Please enter a valid GitHub issue or pull request URL');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await createBounty(formData, account!.name);
+      if (response.success) {
+        navigate('/');
+      } else {
+        setError(response.message);
+      }
+    } catch (err) {
+      setError('Failed to create bounty. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Create Bounty</h1>
-            <WalletConnect />
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Create Bounty</h1>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-6">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+
           <div className="space-y-6">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">
@@ -47,6 +81,24 @@ const CreateBounty = () => {
             </div>
 
             <div>
+              <label htmlFor="githubLink" className="block text-sm font-medium text-gray-700">
+                GitHub Issue/PR Link
+              </label>
+              <input
+                type="url"
+                id="githubLink"
+                value={formData.githubLink}
+                onChange={(e) => setFormData({ ...formData, githubLink: e.target.value })}
+                placeholder="https://github.com/owner/repo/issues/123"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Link to the GitHub issue or pull request that needs to be fixed
+              </p>
+            </div>
+
+            <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                 Description
               </label>
@@ -57,13 +109,14 @@ const CreateBounty = () => {
                 rows={4}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 required
+                placeholder="Describe the bug and what needs to be fixed..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                  Amount
+                  Reward Amount
                 </label>
                 <input
                   type="number"
@@ -72,6 +125,8 @@ const CreateBounty = () => {
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
+                  min="0.001"
+                  step="0.001"
                 />
               </div>
 
@@ -101,6 +156,7 @@ const CreateBounty = () => {
                 value={formData.deadline}
                 onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
 
@@ -109,14 +165,16 @@ const CreateBounty = () => {
                 type="button"
                 onClick={() => navigate('/')}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
+                disabled={isSubmitting}
               >
-                Create Bounty
+                {isSubmitting ? 'Creating...' : 'Create Bounty'}
               </button>
             </div>
           </div>

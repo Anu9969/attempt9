@@ -64,4 +64,5 @@ export interface Bounty {
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   created_at: string;
   deadline?: string;
+  githubLink: string;  // GitHub issue or PR URL
 }
