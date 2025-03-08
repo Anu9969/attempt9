@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWalletContext } from '../context/WalletContext';
 import { useBounties } from '../hooks/useBounties';
+import { toast } from 'react-hot-toast';
+import { BountyContract } from '../contracts/bounty.contract';
 
 const CreateBounty = () => {
   const navigate = useNavigate();
@@ -29,21 +31,58 @@ const CreateBounty = () => {
     e.preventDefault();
     setError(null);
 
+    if (!account) {
+      setError('Please connect your Hive wallet first');
+      toast.error('Please connect your Hive wallet first');
+      return;
+    }
+
+    if (!window.hive_keychain) {
+      setError('Hive Keychain extension not found');
+      toast.error('Hive Keychain extension not found');
+      return;
+    }
+
     if (!validateGithubUrl(formData.githubLink)) {
       setError('Please enter a valid GitHub issue or pull request URL');
+      toast.error('Please enter a valid GitHub issue or pull request URL');
+      return;
+    }
+
+    // Ensure amount is a valid number
+    if (formData.amount === '' || isNaN(parseFloat(formData.amount))) {
+      setError('Please enter a valid reward amount');
+      toast.error('Please enter a valid reward amount');
       return;
     }
 
     setIsSubmitting(true);
+    const loadingToast = toast.loading('Creating bounty on blockchain...');
+
     try {
-      const response = await createBounty(formData, account!.name);
+      // Use BountyContract directly for blockchain integration
+      const bountyContract = new BountyContract(account.name);
+      const response = await bountyContract.createBounty({
+        title: formData.title,
+        description: formData.description,
+        githubLink: formData.githubLink,
+        prizePool: parseFloat(formData.amount)
+      });
+
+      toast.dismiss(loadingToast);
+
       if (response.success) {
+        toast.success('Bounty successfully created on Hive blockchain!');
         navigate('/');
       } else {
         setError(response.message);
+        toast.error(response.message);
       }
-    } catch (err) {
-      setError('Failed to create bounty. Please try again.');
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      const errorMessage = err.message || 'Failed to create bounty';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -125,7 +164,6 @@ const CreateBounty = () => {
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
-                  min="0.001"
                   step="0.001"
                 />
               </div>

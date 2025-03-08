@@ -9,7 +9,9 @@ declare global {
 
 // Check if Hive Keychain extension is installed
 export const isKeychainInstalled = (): boolean => {
-  return typeof window !== 'undefined' && 'hive_keychain' in window;
+  return typeof window !== 'undefined' && 
+         typeof window.hive_keychain !== 'undefined' && 
+         window.hive_keychain !== null;
 };
 
 // Get Hive Keychain download link

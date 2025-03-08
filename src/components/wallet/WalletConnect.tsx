@@ -1,21 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../../hooks/useWallet';
+import { getKeychainDownloadLink } from '../../utils/hive';
 
 export const WalletConnect = () => {
+  const navigate = useNavigate();
   const { account, isConnecting, error, isKeychainInstalled, connect, disconnect } = useWallet();
   const [username, setUsername] = useState('');
   const [showInput, setShowInput] = useState(false);
+  const [checkingKeychain, setCheckingKeychain] = useState(true);
+
+  useEffect(() => {
+    // Give some time for Keychain to be detected
+    const timer = setTimeout(() => {
+      setCheckingKeychain(false);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Redirect to home page when account is connected
+  useEffect(() => {
+    if (account) {
+      navigate('/');
+    }
+  }, [account, navigate]);
+
+  if (checkingKeychain) {
+    return (
+      <div className="flex items-center space-x-2">
+        <div className="animate-pulse bg-gray-200 h-8 w-32 rounded"></div>
+        <span className="text-sm text-gray-500">Checking for Hive Keychain...</span>
+      </div>
+    );
+  }
 
   if (!isKeychainInstalled) {
+    const downloadLink = getKeychainDownloadLink();
     return (
-      <a
-        href="https://hive-keychain.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded"
-      >
-        Install Hive Keychain
-      </a>
+      <div className="flex flex-col space-y-2">
+        <a
+          href={downloadLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded"
+        >
+          Install Hive Keychain
+        </a>
+        <p className="text-sm text-gray-600">
+          Hive Keychain extension is required to login and interact with the blockchain.
+        </p>
+      </div>
     );
   }
 
@@ -37,10 +72,10 @@ export const WalletConnect = () => {
     );
   }
 
-  const handleConnect = (e: React.FormEvent) => {
+  const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      connect(username.trim());
+      await connect(username.trim());
       setShowInput(false);
       setUsername('');
     }

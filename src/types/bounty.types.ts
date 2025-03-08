@@ -18,6 +18,7 @@ export interface BountyProgram {
     pullRequestUrl: string;
     mergeCommitHash: string;
     timestamp: string;
+    githubUsername: string; // GitHub username of the PR creator
   }
 
 

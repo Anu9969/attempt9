@@ -66,3 +66,10 @@ export interface Bounty {
   deadline?: string;
   githubLink: string;  // GitHub issue or PR URL
 }
+
+// Add Hive Keychain type to window object
+declare global {
+  interface Window {
+    hive_keychain: any;
+  }
+}
